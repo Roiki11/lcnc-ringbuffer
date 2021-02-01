@@ -4,27 +4,24 @@
  
 */
 
-#include "rtapi.h"
-#include "rtapi_app.h"		/* rtapi_app_main,exit() */
-#include "common.h"		/* shmem structure, SHMEM_KEY */
-#include "hal.h"
-#include "lwrb/lwrb.h"
+#include ”rtapi.h”
+#include ”rtapi_app.h”		/* rtapi_app_main,exit() */
+#include ”common.h”		/* shmem structure, SHMEM_KEY */
+#include ”hal.h”
+#include ”lwrb/lwrb.h”
 
 static int module;  
 static int shmem_ring;		/* the shared memory ID */
 static int shmem_data;      /* shared memory data ID */
 
-#define shmem_ring_key 1011124 /* ringbuffer shared key */
-#define shmem_data_key 1248234 /* ringuffer data shared key */
-
-enum { SHMEM_RING_STACKSIZE = 9*8*20+1 };	/* how big the ringbuffer is */
+static int SHMEM_RING_STACKSIZE = 9*8*20+1 ;	/* how big the ringbuffer is */
 
 static buffdata_t *buffdata = 0
 
 /* module information */
-MODULE_AUTHOR("Roiki11”);
-MODULE_DESCRIPTION("HAL ringbuffer");
-MODULE_LICENSE("GPL3");
+MODULE_AUTHOR(”Roiki11”);
+MODULE_DESCRIPTION(”HAL ringbuffer”);
+MODULE_LICENSE(”GPL3”);
 
 /***********************************************************************
 *                STRUCTURES AND GLOBAL VARIABLES                       *
@@ -33,7 +30,7 @@ MODULE_LICENSE("GPL3");
 /* this structure contains the HAL shared memory data */
 
 typedef struct {
-    hal_bit_t *buff_full;
+    hal_bit_t *buffer_full;
     hal_bit_t *enable;	
 } buffdata_t;
 
@@ -49,9 +46,9 @@ int rtapi_app_main(void)
 {
     int retval;
     
-    module = rtapi_init("ringbuffer");
+    module = rtapi_init(”ringbuffer”);
     if (comp_id < 0) {
-	rtapi_print_msg(RTAPI_MSG_ERR, "RINGBUFFER: ERROR: hal_init() failed\n");
+	rtapi_print_msg(RTAPI_MSG_ERR, ”RINGBUFFER: ERROR: hal_init() failed\n”);
 	return -EINVAL;
     }
 
@@ -82,7 +79,7 @@ int rtapi_app_main(void)
     
     retval = rtapi_shmem_getptr(shmem_ring, (void **) &ringbuffer);
     if (retval < 0) {
-    rtapi_print("shmem_ring init: rtapi_shmem_getptr returned %d\n”,
+    rtapi_print(”shmem_ring init: rtapi_shmem_getptr returned %d\n”,
 	    retval);
 	rtapi_exit(module);
 	return -1;
@@ -90,7 +87,7 @@ int rtapi_app_main(void)
     
     retval = lwrb_init(&ringbuffer, ringbuffer_data, sizeof(ringbuffer_data)); /* Initialize buffer */
     if (retval < 0) {
-    rtapi_print("shmem_ring init: lwrb_init returned %d\n”,
+    rtapi_print(”shmem_ring init: lwrb_init returned %d\n”,
 	    retval);
 	rtapi_exit(module);
 	return -1;
@@ -126,6 +123,7 @@ void rtapi_app_exit(void)
 static void buffer_run(void *arg, long l)
 {
 
+lwrb_read(&ringbuffer, buff, 72)
 }
 
 /***********************************************************************
