@@ -12,7 +12,6 @@
 
 static int module;  
 static int shmem_ring;		/* the shared memory ID */
-static int shmem_data;      /* shared memory data ID */
 
 static int SHMEM_RING_STACKSIZE = 9*8*20+1 ;	/* how big the ringbuffer is */
 
@@ -31,22 +30,23 @@ MODULE_LICENSE(”GPL3”);
 
 typedef struct {
     hal_bit_t *buffer_full;
-    hal_bit_t *enable;	
+    hal_bit_t *enable;
+    hal_bit_t *buffer_empty;	
 } buffdata_t;
 
 /* other globals */
 
 static int comp_id;		/* component ID */
-lwrb_t ringbuffer;
-uint8_t ringbuffer_data[SHMEM_RING_STACKSIZE];
-
+static int module;
 
 
 int rtapi_app_main(void)
 {
     int retval;
+    lwrb_t ringbuffer;
+    uint8_t ringbuffer_data[SHMEM_RING_STACKSIZE]
     
-    module = rtapi_init(”ringbuffer”);
+    comp_id = hal_init(”ringbuffer”);
     if (comp_id < 0) {
 	rtapi_print_msg(RTAPI_MSG_ERR, ”RINGBUFFER: ERROR: hal_init() failed\n”);
 	return -EINVAL;
@@ -62,18 +62,11 @@ int rtapi_app_main(void)
     }
     
       /* allocate and initialize the shared memory structure */
-    shmem_data = rtapi_shmem_new(shmem_data_key, module, sizeof(buffdata_t));
+    shmem_data = hal_malloc(sizeof(buffdata_t));
     if (shmem_data < 0) {
-	rtapi_print(”shmem_ring init: rtapi_shmem_new returned %d\n”,
-	    shmem_mem);
-	rtapi_exit(module);
-	return -1;
-    }
-    retval = rtapi_shmem_getptr(shmem_data, (void **) &buffdata_t);
-    if (retval < 0) {
-	rtapi_print(”shmemtask init: rtapi_shmem_getptr returned %d\n”,
-	    retval);
-	rtapi_exit(module);
+	rtapi_print(”shmem_ring init: hal_malloc returned %d\n”,
+	    shmem_data);
+	rtapi_exit(comp_id);
 	return -1;
     }
     
@@ -123,7 +116,7 @@ void rtapi_app_exit(void)
 static void buffer_run(void *arg, long l)
 {
 
-lwrb_read(&ringbuffer, buff, 72)
+
 }
 
 /***********************************************************************
