@@ -8,7 +8,7 @@
 #include ”rtapi_app.h”		/* rtapi_app_main,exit() */
 #include ”common.h”		/* shmem structure, SHMEM_KEY */
 #include ”hal.h”
-#include ”lwrb/lwrb.h”
+#include ”lwrb/lwrb.h”  //ringbuffer library
 
 static int module;  
 static int shmem_ring;		/* the shared memory ID */
@@ -38,13 +38,14 @@ typedef struct {
 
 static int comp_id;		/* component ID */
 static int module;
+static int export_pins(int n, *buffdata);
 
 
 int rtapi_app_main(void)
 {
     int retval;
     lwrb_t ringbuffer;
-    uint8_t ringbuffer_data[SHMEM_RING_STACKSIZE]
+    uint8_t ringbuffer_data[SHMEM_RING_STACKSIZE];
     
     comp_id = hal_init(”ringbuffer”);
     if (comp_id < 0) {
@@ -62,7 +63,7 @@ int rtapi_app_main(void)
     }
     
       /* allocate and initialize the shared memory structure */
-    shmem_data = hal_malloc(sizeof(buffdata_t));
+    shmem_data = hal_malloc(sizeof(*buffdata));
     if (shmem_data < 0) {
 	rtapi_print(”shmem_ring init: hal_malloc returned %d\n”,
 	    shmem_data);
@@ -85,6 +86,17 @@ int rtapi_app_main(void)
 	rtapi_exit(module);
 	return -1;
     }
+    
+    retval = init_pins(n, &buffdata);
+    if ( n == 0 ) {
+	rtapi_print_msg(RTAPI_MSG_ERR,
+	    "ringbuffer: ERROR: init_pins failed\n");
+	retval = -EINVAL;
+	hal_exit(comp_id);
+	return -1;
+    }
+    
+   hal_ready(comp_id);
 
 }
 
@@ -93,11 +105,6 @@ int rtapi_app_main(void)
 void rtapi_app_exit(void)
 {
     int retval;
-    retval = rtapi_shmem_delete(shmem_data, module);
-    if (retval < 0) {
-	rtapi_print(”shmemtask exit: rtapi_shmem_delete returned %d\n”,
-	    retval);
-    }
     
     retval = rtapi_shmem_delete(shmem_ring, module);
     if (retval < 0) {
@@ -106,7 +113,7 @@ void rtapi_app_exit(void)
     }
     
     /* Clean up and exit */
-    rtapi_exit(module);
+    hal_exit(comp_id);
 }
 
 /***********************************************************************
@@ -122,3 +129,41 @@ static void buffer_run(void *arg, long l)
 /***********************************************************************
 *                   LOCAL FUNCTION DEFINITIONS                         *
 ************************************************************************/
+
+static int export_pins(int n, buffdata_t *buffdata){
+
+    int n, retval;
+
+    retval = hal_pin_bit_newf(HAL_IN, &(buffdata->enable), comp_id,
+	"ringbuffer.%d.enable", num);
+    if (retval != 0 ) {
+	rtapi_print_msg(RTAPI_MSG_ERR,
+	    "RINGBUFFER: ERROR: 'enable' pin export failed\n");
+	return -EIO;
+    }
+    
+    retval = hal_pin_bit_newf(HAL_IN, &(buffdata->buffer_full), comp_id,
+	"ringbuffer.%d.buffer_full", num);
+    if (retval != 0 ) {
+	rtapi_print_msg(RTAPI_MSG_ERR,
+	    "RINGBUFFER: ERROR: 'buffer_full' pin export failed\n");
+	return -EIO;
+    }
+
+    retval = hal_pin_bit_newf(HAL_IN, &(buffdata->buffer_empty), comp_id,
+	"ringbuffer.%d.buffer_empty", num);
+    if (retval != 0 ) {
+	rtapi_print_msg(RTAPI_MSG_ERR,
+	    "RINGBUFFER: ERROR: 'buffer_empty' pin export failed\n");
+	return -EIO;
+    }
+    
+    *(buffdata->enable) = 0;
+    *(buffdata->buffer_full) = 0;
+    *(buffdata->buffer_empty) = 1;
+    
+    
+
+return 0;
+}
+
