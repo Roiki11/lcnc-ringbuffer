@@ -11,10 +11,10 @@
 #include ”lwrb/lwrb.h”  //ringbuffer library
 #include ”ringbuffer.h” //ringbuffer decls
 
-static int module;  
-static int shmem_ring;		/* the shared memory ID */
+#define data_blocks 20
 
-static int SHMEM_RING_STACKSIZE = 9*8*20+1 ;	/* how big the ringbuffer is */
+static int module;  
+static int shmem_ring;	// ringbuffer ID
 
 static buffdata_t *buffdata = 0
 
@@ -40,8 +40,12 @@ typedef struct {
 static int comp_id;		/* component ID */
 static int module;
 
+static int buffsize = sizeof(joint_data)*data_blocks+1;
+
+double joint_data[9] = {0};
+
 lwrb_t ringbuffer;
-uint8_t ringbuffer_data[SHMEM_RING_STACKSIZE];
+uint8_t ringbuffer_data[sizeof(joint_data)*data_blocks+1];
     
 static int export_pins(int n, *buffdata);
 static void buffer_run();
@@ -57,8 +61,8 @@ int rtapi_app_main(void)
 	return -EINVAL;
     }
 
-    /* allocate and initialize the shared memory structure */
-    shmem_ring = rtapi_shmem_new(shmem_ring_key, module, sizeof(SHMEM_RING_STACKSIZE));
+    /* allocate and initialize the ring buffer shared memory structure */
+    shmem_ring = rtapi_shmem_new(shmem_ring_key, comp_id, buffsize);
     if (shmem_ring < 0) {
 	rtapi_print(”shmem_ring init: rtapi_shmem_new returned %d\n”,
 	    shmem_mem);
@@ -126,7 +130,9 @@ void rtapi_app_exit(void)
 
 static void buffer_run()
 {
+extern double joint_data[];
 
+lwrb_read(&ringbuffer, joint_data, 72);
 
 }
 
