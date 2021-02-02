@@ -9,6 +9,7 @@
 #include ”common.h”		/* shmem structure, SHMEM_KEY */
 #include ”hal.h”
 #include ”lwrb/lwrb.h”  //ringbuffer library
+#include ”ringbuffer.h” //ringbuffer decls
 
 static int module;  
 static int shmem_ring;		/* the shared memory ID */
@@ -38,14 +39,17 @@ typedef struct {
 
 static int comp_id;		/* component ID */
 static int module;
+
+lwrb_t ringbuffer;
+uint8_t ringbuffer_data[SHMEM_RING_STACKSIZE];
+    
 static int export_pins(int n, *buffdata);
+static void buffer_run();
 
 
 int rtapi_app_main(void)
 {
     int retval;
-    lwrb_t ringbuffer;
-    uint8_t ringbuffer_data[SHMEM_RING_STACKSIZE];
     
     comp_id = hal_init(”ringbuffer”);
     if (comp_id < 0) {
@@ -65,7 +69,7 @@ int rtapi_app_main(void)
       /* allocate and initialize the shared memory structure */
     shmem_data = hal_malloc(sizeof(*buffdata));
     if (shmem_data < 0) {
-	rtapi_print(”shmem_ring init: hal_malloc returned %d\n”,
+	rtapi_print(”shmem_data init: hal_malloc returned %d\n”,
 	    shmem_data);
 	rtapi_exit(comp_id);
 	return -1;
@@ -88,9 +92,9 @@ int rtapi_app_main(void)
     }
     
     retval = init_pins(n, &buffdata);
-    if ( n == 0 ) {
+    if ( n =! 0 ) {
 	rtapi_print_msg(RTAPI_MSG_ERR,
-	    "ringbuffer: ERROR: init_pins failed\n");
+	    ”ringbuffer: ERROR: init_pins failed\n”);
 	retval = -EINVAL;
 	hal_exit(comp_id);
 	return -1;
@@ -120,7 +124,7 @@ void rtapi_app_exit(void)
 *                       REALTIME FUNCTIONS                             *
 ************************************************************************/
 
-static void buffer_run(void *arg, long l)
+static void buffer_run()
 {
 
 
@@ -135,26 +139,26 @@ static int export_pins(int n, buffdata_t *buffdata){
     int n, retval;
 
     retval = hal_pin_bit_newf(HAL_IN, &(buffdata->enable), comp_id,
-	"ringbuffer.%d.enable", num);
+	”ringbuffer.%d.enable”, num);
     if (retval != 0 ) {
 	rtapi_print_msg(RTAPI_MSG_ERR,
-	    "RINGBUFFER: ERROR: 'enable' pin export failed\n");
+	    ”RINGBUFFER: ERROR: ’enable’ pin export failed\n”);
 	return -EIO;
     }
     
     retval = hal_pin_bit_newf(HAL_IN, &(buffdata->buffer_full), comp_id,
-	"ringbuffer.%d.buffer_full", num);
+	”ringbuffer.%d.buffer_full”, num);
     if (retval != 0 ) {
 	rtapi_print_msg(RTAPI_MSG_ERR,
-	    "RINGBUFFER: ERROR: 'buffer_full' pin export failed\n");
+	    ”RINGBUFFER: ERROR: ’buffer_full’ pin export failed\n”);
 	return -EIO;
     }
 
     retval = hal_pin_bit_newf(HAL_IN, &(buffdata->buffer_empty), comp_id,
-	"ringbuffer.%d.buffer_empty", num);
+	”ringbuffer.%d.buffer_empty”, num);
     if (retval != 0 ) {
 	rtapi_print_msg(RTAPI_MSG_ERR,
-	    "RINGBUFFER: ERROR: 'buffer_empty' pin export failed\n");
+	    ”RINGBUFFER: ERROR: ’buffer_empty’ pin export failed\n”);
 	return -EIO;
     }
     
