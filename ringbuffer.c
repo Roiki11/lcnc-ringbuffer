@@ -40,12 +40,12 @@ typedef struct {
 static int comp_id;		/* component ID */
 static int module;
 
-static int buffsize = sizeof(joint_data)*data_blocks+1;
-
 double joint_data[9] = {0};
 
+static int buffsize = sizeof(joint_data)*data_blocks+1;
+
 lwrb_t ringbuffer;
-uint8_t ringbuffer_data[sizeof(joint_data)*data_blocks+1];
+uint8_t ringbuffer_data[buffsize];
     
 static int export_pins(int n, *buffdata);
 static void buffer_run();
