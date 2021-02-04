@@ -104,6 +104,14 @@ int rtapi_app_main(void)
 	return -1;
     }
     
+    retval= hal_export_func(buffer_run, ,1,0,comp_id);
+    if(retval >0){
+    rtapi_print_msg(RTAPI_MSG_ERR,"HAL export function failed!\n);
+    retval = -EINVAL;
+    hal_exit(comp_id);
+    return -1;
+    }
+    
    hal_ready(comp_id);
 
 }
