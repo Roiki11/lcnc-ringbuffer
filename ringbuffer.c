@@ -11,9 +11,8 @@
 #include ”lwrb/lwrb.h”  //ringbuffer library
 #include ”ringbuffer.h” //ringbuffer decls
 
-#define data_blocks 20
+#define data_blocks 20 //number of data points to keep in buffer.
 
-static int module;  
 static int shmem_ring;	// ringbuffer ID
 
 static buffdata_t *buffdata = 0
@@ -38,12 +37,13 @@ typedef struct {
 /* other globals */
 
 static int comp_id;		/* component ID */
-static int module;
 
-double joint_data[9] = {0};
+double joint_data[9] = {0}; // joint data structure. 9 doubles for 9 axes.
 
-static int buffsize = sizeof(joint_data)*data_blocks+1;
+/* Size of the ring buffer. size of one joint data block times the number of data points to keep in buffer and 1 extra byte for checks. see lwrb docs for more on this. increase the number of data blocks to keep more of them in memory if undesired overwrites occur. */
+static int buffsize = sizeof(joint_data) * data_blocks + 1;
 
+//init ringuffer library
 lwrb_t ringbuffer;
 uint8_t ringbuffer_data[buffsize];
     
@@ -66,7 +66,7 @@ int rtapi_app_main(void)
     if (shmem_ring < 0) {
 	rtapi_print(”shmem_ring init: rtapi_shmem_new returned %d\n”,
 	    shmem_mem);
-	rtapi_exit(module);
+	rtapi_exit(comp_id);
 	return -1;
     }
     
@@ -78,23 +78,23 @@ int rtapi_app_main(void)
 	rtapi_exit(comp_id);
 	return -1;
     }
-    
+    //get ringuffer pointer
     retval = rtapi_shmem_getptr(shmem_ring, (void **) &ringbuffer);
     if (retval < 0) {
     rtapi_print(”shmem_ring init: rtapi_shmem_getptr returned %d\n”,
 	    retval);
-	rtapi_exit(module);
+	rtapi_exit(comp_id);
 	return -1;
     }
-    
-    retval = lwrb_init(&ringbuffer, ringbuffer_data, sizeof(ringbuffer_data)); /* Initialize buffer */
+    //initialize ringbuffer library
+    retval = lwrb_init(&ringbuffer, ringbuffer_data, sizeof(ringbuffer_data)); //Initialize buffer
     if (retval < 0) {
     rtapi_print(”shmem_ring init: lwrb_init returned %d\n”,
 	    retval);
-	rtapi_exit(module);
+	rtapi_exit(comp_id);
 	return -1;
     }
-    
+    //initialize the HAL pins.
     retval = init_pins(n, &buffdata);
     if ( n =! 0 ) {
 	rtapi_print_msg(RTAPI_MSG_ERR,
@@ -114,7 +114,7 @@ void rtapi_app_exit(void)
 {
     int retval;
     
-    retval = rtapi_shmem_delete(shmem_ring, module);
+    retval = rtapi_shmem_delete(shmem_ring, comp_id);
     if (retval < 0) {
 	rtapi_print(”shmemtask exit: rtapi_shmem_delete returned %d\n”,
 	    retval);
@@ -130,6 +130,7 @@ void rtapi_app_exit(void)
 
 static void buffer_run()
 {
+/* realtime function to run in servo thread. pop one joint position from the ring buffer and assign the values to something. Either HAL pins or directly to motion controller if possible. Maybe into the HAL shared memory structure or something. */
 extern double joint_data[];
 
 lwrb_read(&ringbuffer, joint_data, 72);
