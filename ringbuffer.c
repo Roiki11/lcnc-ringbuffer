@@ -11,7 +11,6 @@
 #include ”lwrb/lwrb.h”  //ringbuffer library
 #include ”ringbuffer.h” //ringbuffer decls
 
-#define data_blocks 20 //number of data points to keep in buffer.
 
 static int shmem_ring;	// ringbuffer ID
 
@@ -21,7 +20,8 @@ static buffdata_t *buffdata = 0
 MODULE_AUTHOR(”Roiki11”);
 MODULE_DESCRIPTION(”HAL ringbuffer”);
 MODULE_LICENSE(”GPL3”);
-
+static int data_blocks = 20;
+RTAPI_MP_INT(data_blocks, "data blocks in buffer");
 /***********************************************************************
 *                STRUCTURES AND GLOBAL VARIABLES                       *
 ************************************************************************/
@@ -117,10 +117,9 @@ int rtapi_app_main(void)
     //initialize the HAL pins.
     retval = init_pins(n, &buffdata);
     if ( n =! 0 ) {
-	rtapi_print_msg(RTAPI_MSG_ERR,
-	    ”ringbuffer: ERROR: init_pins failed\n”);
-	retval = -EINVAL;
-	hal_exit(comp_id);
+	   rtapi_print_msg(RTAPI_MSG_ERR, ”ringbuffer: ERROR: init_pins failed\n”);
+	   retval = -EINVAL;
+	   hal_exit(comp_id);
 	return -1;
     }
     
